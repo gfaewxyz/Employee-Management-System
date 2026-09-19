@@ -83,8 +83,6 @@ static MailtrapSettings LoadMailtrapSettings()
     );
 }
 
-record MailtrapSettings(string Host, int Port, string Username, string Password, string FromAddress, string FromName);
-
 static void View(EmployeeAppService app)
 {
     Console.Clear(); Console.WriteLine("EMPLOYEES\n");
@@ -141,3 +139,5 @@ static void Search(EmployeeAppService app)
 static string Read(string label) { Console.Write($"{label}: "); return Console.ReadLine() ?? ""; }
 static void Print(Employee e) => Console.WriteLine($"ID: {e.Id}\nName: {e.Name}\nPosition: {e.Position}\nEmail: {e.Email}\n------------------------------------");
 static void Pause(string message = "Press Enter to continue...") { Console.WriteLine($"\n{message}"); Console.ReadLine(); }
+
+record MailtrapSettings(string Host, int Port, string Username, string Password, string FromAddress, string FromName);
