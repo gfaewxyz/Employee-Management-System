@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EmployeeManagementAppService;
 using EmployeeManagementDataService;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,8 +7,14 @@ var services = new ServiceCollection();
 var dataPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "data", "Employees.json"));
 services.AddSingleton<IEmployeeDataService>(_ => new EmployeeJsonDataService(dataPath));
 services.AddSingleton<EmployeeAppService>();
+
+var mailtrap = LoadMailtrapSettings();
+services.AddSingleton(_ => new EmailService(
+    mailtrap.Host, mailtrap.Port, mailtrap.Username, mailtrap.Password, mailtrap.FromAddress, mailtrap.FromName));
+
 using var provider = services.BuildServiceProvider();
 var app = provider.GetRequiredService<EmployeeAppService>();
+var emailService = provider.GetRequiredService<EmailService>();
 
 while (true)
 {
@@ -20,7 +27,8 @@ while (true)
     Console.WriteLine("3. Edit Employee");
     Console.WriteLine("4. Delete Employee");
     Console.WriteLine("5. Search Employee");
-    Console.WriteLine("6. Exit");
+    Console.WriteLine("6. Send Email to Employee");
+    Console.WriteLine("7. Exit");
     Console.Write("\nSelect option: ");
 
     switch (Console.ReadLine()?.Trim())
@@ -30,10 +38,52 @@ while (true)
         case "3": Edit(app); break;
         case "4": Delete(app); break;
         case "5": Search(app); break;
-        case "6": return;
+        case "6": SendEmail(app, emailService); break;
+        case "7": return;
         default: Pause("Invalid option."); break;
     }
 }
+
+static void SendEmail(EmployeeAppService app, EmailService emailService)
+{
+    Console.Clear(); Console.WriteLine("SEND EMAIL TO EMPLOYEE\n");
+    if (!int.TryParse(Read("Employee ID"), out var id) || app.GetEmployee(id) is not { } employee)
+    {
+        Pause("Employee not found.");
+        return;
+    }
+
+    var subject = Read("Subject");
+    var body = Read("Message");
+
+    try
+    {
+        emailService.SendEmail(employee.Email, subject, body);
+        Pause($"Email sent to {employee.Name} ({employee.Email}) successfully.");
+    }
+    catch (Exception ex)
+    {
+        Pause($"Failed to send email: {ex.Message}");
+    }
+}
+
+static MailtrapSettings LoadMailtrapSettings()
+{
+    var path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    var json = File.ReadAllText(path);
+    using var doc = JsonDocument.Parse(json);
+    var m = doc.RootElement.GetProperty("Mailtrap");
+    return new MailtrapSettings(
+        m.GetProperty("Host").GetString()!,
+        m.GetProperty("Port").GetInt32(),
+        m.GetProperty("Username").GetString()!,
+        m.GetProperty("Password").GetString()!,
+        m.GetProperty("FromAddress").GetString()!,
+        m.GetProperty("FromName").GetString()!
+    );
+}
+
+record MailtrapSettings(string Host, int Port, string Username, string Password, string FromAddress, string FromName);
 
 static void View(EmployeeAppService app)
 {
