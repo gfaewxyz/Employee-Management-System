@@ -1,6 +1,7 @@
 using System.Text.Json;
 using EmployeeManagementAppService;
 using EmployeeManagementDataService;
+using EmployeeManagementModels;
 using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();
